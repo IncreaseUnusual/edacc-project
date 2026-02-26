@@ -24,14 +24,21 @@ export async function POST(req: NextRequest) {
     const diff = difficulty as Difficulty;
     const chunks = getChunks(diff);
     const prompt = buildQuestionGenerationPrompt(passage.title, chunks, diff);
-    const raw = await generateJSON<GeneratedQuestion[]>(prompt);
+    const raw = await generateJSON<GeneratedQuestion[] | Record<string, unknown>>(prompt);
 
-    const questions: Question[] = raw.map((q) => ({
+    // Groq may wrap the array in an object like { "questions": [...] }
+    const arr: GeneratedQuestion[] = Array.isArray(raw)
+      ? raw
+      : Array.isArray(Object.values(raw)[0])
+        ? (Object.values(raw)[0] as GeneratedQuestion[])
+        : (() => { throw new Error("Unexpected AI response shape"); })();
+
+    const questions: Question[] = arr.map((q) => ({
       id: randomUUID(),
       chunkIndex: q.chunkIndex,
       questionText: q.questionText,
       expectedAnswer: q.expectedAnswer,
-      keyConceptsTested: q.keyConceptsTested,
+      keyConcepts: q.keyConcepts,
     }));
 
     return NextResponse.json({ questions });
