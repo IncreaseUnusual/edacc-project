@@ -77,6 +77,7 @@ function SessionContent() {
   const [followUpResult, setFollowUpResult] = useState<FollowUpResponse | null>(null);
   const [followUpUsed, setFollowUpUsed] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
+  const [aiError, setAiError] = useState<string | null>(null);
 
   const persist = useCallback(
     (q: Question[], pi: number, s: Score, da?: string[], fu?: string[]) => {
@@ -194,6 +195,7 @@ function SessionContent() {
   async function handleDeepAnalyze() {
     if (!currentChunk || !currentQuestion || !lastAnswer || !lastEvaluation) return;
     setAiReviewLoading(true);
+    setAiError(null);
 
     try {
       const res = await fetch("/api/evaluate-answer", {
@@ -239,6 +241,7 @@ function SessionContent() {
       setFeedbackState(aiResult);
     } catch (err) {
       console.error("AI review failed:", err);
+      setAiError("AI review ran into a problem — you can still continue.");
     } finally {
       setAiReviewLoading(false);
     }
@@ -276,6 +279,7 @@ function SessionContent() {
     setFollowUp(null);
     setFollowUpResult(null);
     setFollowUpLoading(true);
+    setAiError(null);
 
     try {
       const res = await fetch("/api/evaluate-followup", {
@@ -297,7 +301,8 @@ function SessionContent() {
       setFollowUp(data);
     } catch (err) {
       console.error("Follow-up generation failed:", err);
-      advanceToNext();
+      setAiError("Couldn\u2019t generate a follow-up question right now.");
+      setPhase("feedback");
     } finally {
       setFollowUpLoading(false);
     }
@@ -307,6 +312,7 @@ function SessionContent() {
     if (!followUp || !currentChunk || !currentQuestion) return;
 
     setFollowUpSubmitting(true);
+    setAiError(null);
 
     try {
       const res = await fetch("/api/evaluate-followup", {
@@ -334,6 +340,7 @@ function SessionContent() {
       persist(questions, progressIndex, score, [...deepAnalyzeUsed], [...newUsed]);
     } catch (err) {
       console.error("Follow-up evaluation failed:", err);
+      setAiError("Couldn\u2019t evaluate your follow-up — you can still move on.");
     } finally {
       setFollowUpSubmitting(false);
     }
@@ -351,11 +358,12 @@ function SessionContent() {
   if (error) {
     return (
       <main className="flex min-h-screen flex-col items-center justify-center px-6 py-12">
-        <div className="w-full max-w-2xl text-center">
-          <p className="text-red-600 font-medium mb-4">{error}</p>
+        <div className="w-full max-w-2xl text-center space-y-4">
+          <p className="text-lg font-semibold text-gray-800">Something went wrong</p>
+          <p className="text-sm text-red-600">{error}</p>
           <button
             onClick={() => router.push("/")}
-            className="text-sm text-blue-600 hover:underline cursor-pointer"
+            className="inline-block rounded-lg border border-gray-200 px-5 py-2.5 text-sm font-medium text-gray-600 hover:border-blue-300 hover:text-blue-600 transition-colors cursor-pointer"
           >
             ← Back to start
           </button>
@@ -367,11 +375,12 @@ function SessionContent() {
   if (phase === "loading") {
     return (
       <main className="flex min-h-screen flex-col items-center justify-center px-6 py-12">
-        <div className="w-full max-w-2xl text-center">
-          <div className="inline-block h-6 w-6 animate-spin rounded-full border-2 border-blue-600 border-t-transparent mb-4" />
+        <div className="w-full max-w-2xl text-center space-y-4">
+          <div className="inline-block h-6 w-6 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
           <p className="text-sm text-gray-500">
-            Generating questions for your reading...
+            Getting your reading session ready&hellip;
           </p>
+          <p className="text-xs text-gray-400">This usually takes a few seconds</p>
         </div>
       </main>
     );
@@ -386,7 +395,7 @@ function SessionContent() {
             <ScoreBar earned={score.earned} available={score.available} />
             <button
               onClick={handleRestart}
-              className="text-xs text-gray-400 hover:text-red-500 transition-colors cursor-pointer"
+              className="text-xs text-gray-400 hover:text-red-500 transition-colors cursor-pointer px-2 py-1.5 -mr-2 min-h-[36px] flex items-center"
             >
               Restart
             </button>
@@ -413,13 +422,13 @@ function SessionContent() {
               <button
                 onClick={handleBack}
                 disabled={viewIndex <= 0}
-                className="text-sm text-blue-600 hover:underline disabled:text-gray-300 disabled:no-underline cursor-pointer disabled:cursor-default"
+                className="text-sm text-blue-600 hover:underline disabled:text-gray-300 disabled:no-underline cursor-pointer disabled:cursor-default py-2 pr-4 min-h-[44px] flex items-center"
               >
                 ← Previous
               </button>
               <button
                 onClick={viewIndex < progressIndex - 1 ? handleForward : handleReturnToCurrent}
-                className="text-sm font-medium text-blue-600 hover:underline cursor-pointer"
+                className="text-sm font-medium text-blue-600 hover:underline cursor-pointer py-2 pl-4 min-h-[44px] flex items-center"
               >
                 {viewIndex < progressIndex - 1 ? "Next →" : "Return to current section →"}
               </button>
@@ -430,10 +439,26 @@ function SessionContent() {
         {/* Active chunk flow */}
         {!isViewingPrevious && (
           <>
+            {aiError && (
+              <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 flex items-start gap-2">
+                <span className="text-amber-500 text-sm mt-0.5">⚠</span>
+                <div className="flex-1">
+                  <p className="text-sm text-amber-800">{aiError}</p>
+                </div>
+                <button
+                  onClick={() => setAiError(null)}
+                  className="text-amber-400 hover:text-amber-600 text-xs cursor-pointer p-1"
+                  aria-label="Dismiss"
+                >
+                  ✕
+                </button>
+              </div>
+            )}
+
             {viewIndex > 0 && (phase === "reading" || phase === "answering") && (
               <button
                 onClick={handleBack}
-                className="text-sm text-gray-400 hover:text-blue-600 transition-colors cursor-pointer"
+                className="text-sm text-gray-400 hover:text-blue-600 transition-colors cursor-pointer py-2 pr-4 min-h-[44px] flex items-center"
               >
                 ← Review previous section
               </button>
@@ -442,9 +467,9 @@ function SessionContent() {
             {phase === "reading" && (
               <button
                 onClick={() => setPhase("answering")}
-                className="w-full rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 transition-colors cursor-pointer"
+                className="w-full rounded-lg bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-700 transition-colors cursor-pointer min-h-[48px]"
               >
-                I&apos;ve read this - show me the question
+                I&apos;ve read this — show me the question
               </button>
             )}
 

@@ -12,9 +12,9 @@ type Summary = {
 };
 
 function scoreLabel(pct: number): { text: string; color: string } {
-  if (pct >= 80) return { text: "Excellent", color: "text-green-600" };
-  if (pct >= 50) return { text: "Good effort", color: "text-amber-600" };
-  return { text: "Keep going", color: "text-blue-600" };
+  if (pct >= 80) return { text: "Excellent — you really know your stuff!", color: "text-green-600" };
+  if (pct >= 50) return { text: "Solid effort — you're getting there!", color: "text-amber-600" };
+  return { text: "Good start — keep at it!", color: "text-blue-600" };
 }
 
 function CompletionContent() {
@@ -89,15 +89,15 @@ function CompletionContent() {
             <div className="flex items-center gap-2">
               <div className="h-4 w-4 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
               <p className="text-sm text-gray-500">
-                Generating your learning summary…
+                Putting together your learning summary&hellip;
               </p>
             </div>
           )}
 
           {summaryError && (
             <p className="text-sm text-gray-400 italic">
-              Couldn&apos;t generate a summary this time, but great job
-              completing the session!
+              Couldn&apos;t generate a summary this time — but great job
+              finishing the session!
             </p>
           )}
 
@@ -143,15 +143,15 @@ function CompletionContent() {
         <div className="flex flex-col gap-3">
           <button
             onClick={() => router.push(`/session?difficulty=${difficulty}`)}
-            className="w-full rounded-lg bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-700 transition-colors cursor-pointer"
+            className="w-full rounded-lg bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-700 transition-colors cursor-pointer min-h-[48px]"
           >
-            Try again ({difficulty})
+            Give it another go ({difficulty})
           </button>
           <button
             onClick={() => router.push("/")}
-            className="w-full rounded-lg border border-gray-200 px-4 py-3 text-sm font-medium text-gray-600 hover:border-blue-300 hover:text-blue-600 transition-colors cursor-pointer"
+            className="w-full rounded-lg border border-gray-200 px-4 py-3 text-sm font-medium text-gray-600 hover:border-blue-300 hover:text-blue-600 transition-colors cursor-pointer min-h-[48px]"
           >
-            Choose a different difficulty
+            Try a different level
           </button>
         </div>
       </div>

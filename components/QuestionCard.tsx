@@ -65,7 +65,7 @@ export function QuestionCard({
             <button
               type="button"
               onClick={stt.toggle}
-              className={`absolute right-2 bottom-2 rounded-full p-1.5 text-xs font-medium transition-colors cursor-pointer ${
+              className={`absolute right-2 bottom-2 rounded-full p-2 text-xs font-medium transition-colors cursor-pointer min-w-[36px] min-h-[36px] flex items-center justify-center ${
                 stt.listening
                   ? "bg-red-100 text-red-600 hover:bg-red-200"
                   : "bg-gray-100 text-gray-500 hover:bg-gray-200"
@@ -80,7 +80,7 @@ export function QuestionCard({
         <button
           type="submit"
           disabled={disabled || !answer.trim()}
-          className={`w-full rounded-lg px-4 py-2.5 text-sm font-semibold transition-all ${
+          className={`w-full rounded-lg px-4 py-3 text-sm font-semibold transition-all min-h-[48px] ${
             disabled || !answer.trim()
               ? "bg-gray-100 text-gray-400 cursor-not-allowed"
               : "bg-blue-600 text-white hover:bg-blue-700 cursor-pointer"

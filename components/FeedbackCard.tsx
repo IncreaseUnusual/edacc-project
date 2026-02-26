@@ -7,19 +7,19 @@ const config: Record<AnswerResult, { bg: string; border: string; icon: string; l
     bg: "bg-green-50",
     border: "border-green-200",
     icon: "✓",
-    label: "Full marks!",
+    label: "Nice work!",
   },
   partial: {
     bg: "bg-amber-50",
     border: "border-amber-200",
     icon: "~",
-    label: "Partial credit",
+    label: "You're on the right track",
   },
   incorrect: {
     bg: "bg-red-50",
     border: "border-red-200",
     icon: "✗",
-    label: "Not quite",
+    label: "Not quite — here's what to look for",
   },
 };
 
@@ -66,14 +66,14 @@ export function FeedbackCard({
             <button
               onClick={onFollowUp}
               disabled={aiReviewLoading}
-              className="w-full rounded-lg bg-purple-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-purple-700 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full rounded-lg bg-purple-600 px-4 py-3 text-sm font-semibold text-white hover:bg-purple-700 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed min-h-[48px]"
             >
               Try a follow-up question →
             </button>
             <button
               onClick={onContinue}
               disabled={aiReviewLoading}
-              className="w-full text-center text-sm text-gray-400 hover:text-gray-600 transition-colors cursor-pointer py-1"
+              className="w-full text-center text-sm text-gray-400 hover:text-gray-600 transition-colors cursor-pointer py-2 min-h-[44px]"
             >
               Skip &amp; continue
             </button>
@@ -82,24 +82,24 @@ export function FeedbackCard({
           <button
             onClick={onContinue}
             disabled={aiReviewLoading}
-            className="w-full rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full rounded-lg bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-700 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed min-h-[48px]"
           >
-            {continueLabel ?? "Continue"}
+            {continueLabel ?? "Next section →"}
           </button>
         )}
         {onRequestAIReview && (
           <button
             onClick={onRequestAIReview}
             disabled={aiReviewLoading}
-            className="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-600 hover:border-blue-300 hover:text-blue-600 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm font-medium text-gray-600 hover:border-blue-300 hover:text-blue-600 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed min-h-[48px]"
           >
             {aiReviewLoading ? (
               <span className="flex items-center justify-center gap-2">
                 <span className="inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
-                AI is reviewing...
+                Checking with AI&hellip;
               </span>
             ) : (
-              "Think I'm right? Request AI review"
+              "Think I\u2019m right? Ask AI to take another look"
             )}
           </button>
         )}

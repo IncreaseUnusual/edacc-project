@@ -22,9 +22,13 @@ export default function WelcomePage() {
           {passage.title}
         </h1>
 
+        <p className="mt-3 text-sm text-gray-500">
+          Read at your own pace, answer questions along the way, and get helpful feedback.
+        </p>
+
         <div className="mt-10 flex flex-col items-center">
           <p className="text-sm font-medium text-gray-700 mb-4">
-            Choose your level
+            Pick what feels right
           </p>
           <DifficultyPicker selected={selected} onSelect={setSelected} />
         </div>
@@ -32,7 +36,7 @@ export default function WelcomePage() {
         <button
           onClick={handleStart}
           disabled={!selected}
-          className={`mt-8 w-full max-w-sm rounded-xl px-6 py-3.5 text-base font-semibold transition-all ${
+          className={`mt-8 w-full max-w-sm rounded-xl px-6 py-3.5 text-base font-semibold transition-all min-h-[52px] ${
             selected
               ? "bg-blue-600 text-white hover:bg-blue-700 cursor-pointer"
               : "bg-gray-100 text-gray-400 cursor-not-allowed"

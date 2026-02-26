@@ -39,7 +39,7 @@ export function FollowUpCard({
         <div className="flex items-center gap-2">
           <div className="h-4 w-4 animate-spin rounded-full border-2 border-purple-600 border-t-transparent" />
           <p className="text-sm text-gray-500">
-            Generating a follow-up question…
+            Thinking of a follow-up for you&hellip;
           </p>
         </div>
       </div>
@@ -100,7 +100,7 @@ export function FollowUpCard({
               <button
                 type="button"
                 onClick={stt.toggle}
-                className={`absolute right-2 bottom-2 rounded-full p-1.5 text-xs font-medium transition-colors cursor-pointer ${
+                className={`absolute right-2 bottom-2 rounded-full p-2 text-xs font-medium transition-colors cursor-pointer min-w-[36px] min-h-[36px] flex items-center justify-center ${
                   stt.listening
                     ? "bg-red-100 text-red-600 hover:bg-red-200"
                     : "bg-gray-100 text-gray-500 hover:bg-gray-200"
@@ -115,7 +115,7 @@ export function FollowUpCard({
           <button
             type="submit"
             disabled={submitting || !answer.trim()}
-            className={`w-full rounded-lg px-4 py-2.5 text-sm font-semibold transition-all ${
+            className={`w-full rounded-lg px-4 py-3 text-sm font-semibold transition-all min-h-[48px] ${
               submitting || !answer.trim()
                 ? "bg-gray-100 text-gray-400 cursor-not-allowed"
                 : "bg-purple-600 text-white hover:bg-purple-700 cursor-pointer"
@@ -124,7 +124,7 @@ export function FollowUpCard({
             {submitting ? (
               <span className="flex items-center justify-center gap-2">
                 <span className="inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                Evaluating…
+                Checking your answer&hellip;
               </span>
             ) : (
               "Submit follow-up answer"
@@ -146,7 +146,7 @@ export function FollowUpCard({
               {result.result === "correct" ? "✓" : "✗"}
             </span>
             <span className="text-sm font-semibold text-gray-800">
-              {result.result === "correct" ? "Well done!" : "Not quite"}
+              {result.result === "correct" ? "Well done!" : "Not quite — here\u2019s the answer"}
             </span>
           </div>
 
@@ -164,9 +164,9 @@ export function FollowUpCard({
           {onContinue && (
             <button
               onClick={onContinue}
-              className="mt-3 w-full rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 transition-colors cursor-pointer"
+              className="mt-3 w-full rounded-lg bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-700 transition-colors cursor-pointer min-h-[48px]"
             >
-              Continue
+              Next section →
             </button>
           )}
         </div>
