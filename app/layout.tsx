@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "EdAccelerator — Reading Comprehension",
+  title: "EdAccelerator - Reading Comprehension",
   description:
     "AI-powered reading comprehension that teaches, not tests.",
 };

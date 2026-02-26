@@ -11,12 +11,17 @@ export type Chunk = {
   text: string;
 };
 
+export type KeyConcept = {
+  concept: string;
+  keywords: string[];
+};
+
 export type Question = {
   id: string;
   chunkIndex: number;
   questionText: string;
   expectedAnswer: string;
-  keyConceptsTested: string[];
+  keyConcepts: KeyConcept[];
 };
 
 export type AnswerResult = "correct" | "partial" | "incorrect";
