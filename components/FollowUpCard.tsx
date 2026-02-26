@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { FollowUpResponse } from "@/lib/types";
+import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 
 type FollowUpCardProps = {
   loading?: boolean;
@@ -26,6 +27,12 @@ export function FollowUpCard({
 }: FollowUpCardProps) {
   const [answer, setAnswer] = useState("");
 
+  const handleSpeechResult = useCallback((text: string) => {
+    setAnswer((prev) => (prev ? prev + " " + text : text));
+  }, []);
+
+  const stt = useSpeechRecognition(handleSpeechResult);
+
   if (loading) {
     return (
       <div className="rounded-xl border border-purple-100 bg-purple-50/40 p-5 sm:p-6">
@@ -47,6 +54,7 @@ export function FollowUpCard({
     e.preventDefault();
     const trimmed = answer.trim();
     if (!trimmed || !onSubmit) return;
+    if (stt.listening) stt.stop();
     onSubmit(trimmed);
   }
 
@@ -66,19 +74,44 @@ export function FollowUpCard({
       <p className="text-base font-semibold text-gray-800">{questionText}</p>
 
       {hint && !hasResult && (
-        <p className="text-sm text-purple-600 italic">💡 Hint: {hint}</p>
+        <p className="text-sm text-purple-600 italic">Hint: {hint}</p>
       )}
 
       {!hasResult && (
         <form onSubmit={handleSubmit} className="space-y-3">
-          <textarea
-            value={answer}
-            onChange={(e) => setAnswer(e.target.value)}
-            placeholder="Type your answer here…"
-            disabled={submitting}
-            rows={3}
-            className="w-full rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm text-gray-800 placeholder-gray-400 focus:border-purple-400 focus:outline-none focus:ring-1 focus:ring-purple-400 disabled:opacity-50 resize-none"
-          />
+          <div className="relative">
+            <textarea
+              value={answer}
+              onChange={(e) => setAnswer(e.target.value)}
+              placeholder={
+                stt.listening
+                  ? "Listening… speak now"
+                  : "Type your answer here…"
+              }
+              disabled={submitting}
+              rows={3}
+              className={`w-full rounded-lg border bg-white px-4 py-3 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-1 disabled:opacity-50 resize-none ${
+                stt.listening
+                  ? "border-red-300 focus:border-red-400 focus:ring-red-400"
+                  : "border-gray-200 focus:border-purple-400 focus:ring-purple-400"
+              }`}
+            />
+            {stt.supported && !submitting && (
+              <button
+                type="button"
+                onClick={stt.toggle}
+                className={`absolute right-2 bottom-2 rounded-full p-1.5 text-xs font-medium transition-colors cursor-pointer ${
+                  stt.listening
+                    ? "bg-red-100 text-red-600 hover:bg-red-200"
+                    : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                }`}
+                aria-label={stt.listening ? "Stop listening" : "Voice input"}
+                title={stt.listening ? "Stop listening" : "Voice input"}
+              >
+                {stt.listening ? "MIC ON" : "MIC"}
+              </button>
+            )}
+          </div>
           <button
             type="submit"
             disabled={submitting || !answer.trim()}
