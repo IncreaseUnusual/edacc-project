@@ -210,3 +210,41 @@ RULES:
 - If correct, set correctAnswer to null.
 - Feedback must be warm and encouraging regardless of result.`;
 }
+
+export function buildSummaryPrompt(
+  passageTitle: string,
+  passageContent: string,
+  difficulty: Difficulty,
+  earned: number,
+  available: number,
+): string {
+  const pct = available > 0 ? Math.round((earned / available) * 100) : 0;
+
+  return `You are a warm, encouraging reading tutor for students aged 7-15.
+
+PASSAGE TITLE: "${passageTitle}"
+PASSAGE:
+"${passageContent}"
+
+DIFFICULTY: ${difficulty}
+SCORE: ${earned}/${available} (${pct}%)
+
+TASK:
+Write a short learning summary for the student who just finished reading this passage and answering comprehension questions.
+
+RESPONSE FORMAT (strict JSON object):
+{
+  "headline": "<a short, encouraging headline — 5-10 words>",
+  "summary": "<2-4 sentences summarising the key things the student should take away from the passage>",
+  "encouragement": "<1-2 sentences of personalised encouragement based on their score>"
+}
+
+RULES:
+- Return ONLY the JSON object, no markdown or explanation.
+- If score is high (≥80%), celebrate enthusiastically.
+- If score is moderate (50-79%), acknowledge effort and highlight what they learned.
+- If score is low (<50%), be extra kind — emphasise that reading is a journey and they still learned something.
+- The summary should mention 2-3 specific facts from the passage so the student feels they gained knowledge.
+- Use age-appropriate, warm language. Never be condescending.
+- Keep the headline fun and upbeat regardless of score.`;
+}
