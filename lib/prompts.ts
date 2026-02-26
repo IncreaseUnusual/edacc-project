@@ -1,4 +1,38 @@
-import { Chunk, Difficulty, Question } from "./types";
+import { Chunk, Difficulty, Question, QuestionType } from "./types";
+
+function shuffleArray<T>(arr: T[]): T[] {
+  const out = [...arr];
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
+}
+
+function buildTypeMix(
+  chunkCount: number,
+  difficulty: Difficulty,
+): { typeAssignments: QuestionType[]; instruction: string } {
+  const saCount = difficulty === "easy" ? 0 : 1;
+  const interactiveTypes: QuestionType[] = ["drag-drop", "highlight", "reorder"];
+
+  const types: QuestionType[] = [];
+  for (let i = 0; i < saCount; i++) types.push("short-answer");
+  for (let i = 0; i < chunkCount - saCount; i++) {
+    types.push(interactiveTypes[i % interactiveTypes.length]);
+  }
+
+  const assignments = shuffleArray(types);
+
+  const lines = assignments.map(
+    (t, i) => `Chunk ${i} → "${t}"`,
+  );
+
+  return {
+    typeAssignments: assignments,
+    instruction: `QUESTION TYPE MIX (follow exactly):\n${lines.join("\n")}`,
+  };
+}
 
 export function buildQuestionGenerationPrompt(
   passageTitle: string,
@@ -23,13 +57,14 @@ Suitable for advanced readers (ages 12-15). The answer should require 2-3 senten
     )
     .join("\n\n");
 
-  // Random seed to force the AI to vary questions each session
   const angles = [
     "cause and effect", "comparison", "purpose", "sequence", "vocabulary in context",
     "main idea", "supporting detail", "prediction", "author's intent", "summarization",
   ];
   const shuffled = angles.sort(() => Math.random() - 0.5);
   const suggestedAngles = shuffled.slice(0, 4).join(", ");
+
+  const { instruction: mixInstruction } = buildTypeMix(chunks.length, difficulty);
 
   return `You are a reading comprehension question generator for an educational platform aimed at students aged 7-15.
 
@@ -42,38 +77,70 @@ VARIATION SEED: ${Date.now()}
 Try to focus on these question angles this session: ${suggestedAngles}.
 Each time you generate questions, pick DIFFERENT aspects of the text to ask about. Avoid always asking the most obvious question. Surprise the student.
 
+${mixInstruction}
+
 CHUNKS:
 ${chunksDescription}
 
 TASK:
 Generate exactly ONE question per chunk. Each question should test understanding of that specific chunk's content.
 
-For each question, provide ONLY 2-3 key concepts. IMPORTANT: every concept must be something the student MUST mention to correctly answer THIS SPECIFIC QUESTION. Do NOT include background knowledge, tangential facts, or concepts from other parts of the chunk that aren't needed for the answer. If the question is "Why does X happen?", the concepts should only be about the reason, not about what X is.
+There are FOUR question types:
 
-Each concept must include a VERY GENEROUS list of acceptable keywords/phrases (at least 10-20 variants). Think broadly about every possible way a student could express the idea:
-- The exact words from the passage
-- Synonyms and paraphrases (e.g. "job" -> "role", "task", "purpose", "responsibility", "duty")
-- Simplified/child-friendly rewordings (e.g. "forager" -> "collector", "food gatherer", "bee that gets food")
-- Both numeric ("60,000", "60000") and written ("sixty thousand", "60 thousand") forms for numbers
-- Common misspellings (e.g. "recieve", "seperate", "coloney")
-- Singular and plural forms (e.g. "egg", "eggs")
-- Short phrases (2-4 words) that capture the idea, not just single words
-- Partial matches: if the concept is "lays up to 2000 eggs", include "lays eggs", "produces eggs", "makes eggs", "2000", "two thousand", "thousands of eggs"
-- Verb form variations (e.g. "laying", "lays", "lay", "laid")
-- Informal language a child might use (e.g. "makes babies", "has babies" for "lays eggs")
+### TYPE 1: "short-answer"
+The student types a free-text answer.
+For each question, provide 2-3 key concepts with generous keyword lists (at least 10-20 variants each).
+
+### TYPE 2: "drag-drop"
+The student fills blanks in a sentence by tapping words from a word bank.
+For each drag-drop question:
+- Create a sentence based on the chunk with 2-3 key words replaced by blanks: __1__, __2__, __3__
+- Provide the correct answers in order (one per blank)
+- Provide 2-3 distractor words (plausible but wrong) — same word type as the answers
+- Answers and distractors should be single words or very short phrases (1-3 words max)
+
+### TYPE 3: "highlight"
+"Which part of the text proves this?" — the student reads a claim and taps the sentence that supports it.
+For each highlight question:
+- Write a claim (the questionText) that one sentence in the chunk clearly proves
+- Split the chunk into individual sentences (3-6 sentences)
+- Provide the 0-based index of the correct proving sentence
+- The claim must NOT copy the sentence verbatim — rephrase it
+
+### TYPE 4: "reorder"
+"Put these events in order" — the student arranges 3-5 events from the chunk chronologically.
+For each reorder question:
+- Extract 3-5 short event descriptions from the chunk
+- List them in the CORRECT chronological order
+- Events should be concise (under 15 words each)
+- At least 3 events, at most 5
 
 RESPONSE FORMAT (strict JSON array):
 [
   {
     "chunkIndex": <number>,
-    "questionText": "<the question>",
+    "type": "short-answer" | "drag-drop" | "highlight" | "reorder",
+    "questionText": "<the question, instruction, or claim>",
     "expectedAnswer": "<a concise model answer>",
     "keyConcepts": [
       {
-        "concept": "<short label for the concept>",
+        "concept": "<short label>",
         "keywords": ["<keyword1>", "<keyword2>", "...at least 10-20 variants..."]
       }
-    ]
+    ],
+    "dragDrop": {
+      "sentenceWithBlanks": "<sentence with __1__, __2__ etc>",
+      "answers": ["<correct word for blank 1>", "<correct word for blank 2>"],
+      "distractors": ["<wrong option 1>", "<wrong option 2>"]
+    },
+    "highlight": {
+      "claim": "<the claim the student must find proof for>",
+      "sentences": ["<sentence 1>", "<sentence 2>", "..."],
+      "correctIndex": <0-based index>
+    },
+    "reorder": {
+      "events": ["<event 1 in correct order>", "<event 2>", "<event 3>", "..."]
+    }
   }
 ]
 
@@ -81,12 +148,17 @@ RULES:
 - Return ONLY the JSON array, no markdown or explanation.
 - One question per chunk, in chunk order.
 - Questions must be answerable from the chunk text alone.
-- expectedAnswer should be 1-3 sentences.
-- MAXIMUM 3 concepts per question. Only include concepts that DIRECTLY answer the question.
-- Each concept MUST have at least 10-20 keyword variants. More is better. Be extremely generous.
+- For "short-answer": include keyConcepts with 10-20+ keyword variants each. Set dragDrop, highlight, reorder to null.
+- For "drag-drop": include dragDrop object. keyConcepts can be minimal. Set highlight, reorder to null.
+- For "highlight": include highlight object. keyConcepts can be minimal. Set dragDrop, reorder to null.
+- For "reorder": include reorder object. keyConcepts can be minimal. Set dragDrop, highlight to null.
+- expectedAnswer should be 1-3 sentences for short-answer, the completed sentence for drag-drop, the proving sentence for highlight, or "Events in order: 1, 2, 3..." for reorder.
+- MAXIMUM 3 concepts per question.
 - Keywords should be lowercase.
-- Do not repeat the same question type for every chunk - vary between who/what/why/how/explain.
-- Remember: a student who understood the passage but uses different words should still match. Err on the side of too many keywords rather than too few.`;
+- Do not repeat the same question style for every chunk.
+- Drag-drop distractors must be plausible but clearly wrong if you read the passage.
+- Highlight sentences must be actual sentences from the chunk, not paraphrased.
+- Reorder events must reflect the sequence in the passage.`;
 }
 
 export function buildDeepEvaluationPrompt(

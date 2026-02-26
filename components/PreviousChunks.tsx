@@ -16,11 +16,11 @@ export function PreviousChunks({ chunks }: { chunks: Chunk[] }) {
         return (
           <div
             key={chunk.index}
-            className="rounded-lg border border-gray-100 bg-gray-50 overflow-hidden"
+            className="rounded-2xl border border-amber-100/80 bg-white/50 backdrop-blur-sm overflow-hidden card-shadow"
           >
             <button
               onClick={() => setOpenIndex(isOpen ? null : chunk.index)}
-              className="flex w-full items-center justify-between px-4 py-2.5 text-left text-sm font-medium text-gray-600 hover:text-gray-800 transition-colors"
+              className="flex w-full items-center justify-between px-4 py-2.5 text-left text-sm font-medium text-gray-600 hover:text-gray-800 transition-colors cursor-pointer"
             >
               <span>Section {chunk.index + 1}</span>
               <span className="text-gray-400 text-xs">

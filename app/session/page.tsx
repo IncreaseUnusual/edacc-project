@@ -3,12 +3,18 @@
 import { useSearchParams, useRouter } from "next/navigation";
 import { Suspense, useCallback, useEffect, useState } from "react";
 import { AnswerResult, Chunk, Difficulty, FollowUpResponse, Question } from "@/lib/types";
-import { evaluateAnswer, EvaluationResult } from "@/lib/evaluate";
+import { evaluateAnswer, evaluateDragDrop, evaluateHighlight, evaluateReorder, EvaluationResult } from "@/lib/evaluate";
 import { getChunks, passage } from "@/lib/passage";
+import { fireCorrectConfetti } from "@/lib/confetti";
 import { ScoreBar } from "@/components/ScoreBar";
+import { ProgressStepper } from "@/components/ProgressStepper";
+import { StreakCounter } from "@/components/StreakCounter";
 import { PassageChunk } from "@/components/PassageChunk";
 import { PreviousChunks } from "@/components/PreviousChunks";
 import { QuestionCard } from "@/components/QuestionCard";
+import { DragDropCard } from "@/components/DragDropCard";
+import { HighlightCard } from "@/components/HighlightCard";
+import { ReorderCard } from "@/components/ReorderCard";
 import { FeedbackCard } from "@/components/FeedbackCard";
 import { FollowUpCard } from "@/components/FollowUpCard";
 
@@ -24,6 +30,7 @@ type PersistedState = {
   score: Score;
   deepAnalyzeUsed: string[];
   followUpUsed: string[];
+  streak: number;
 };
 
 function loadSession(difficulty: Difficulty): PersistedState | null {
@@ -59,6 +66,7 @@ function SessionContent() {
   const [progressIndex, setProgressIndex] = useState(0);
   const [viewIndex, setViewIndex] = useState(0);
   const [score, setScore] = useState<Score>({ earned: 0, available: 0 });
+  const [streak, setStreak] = useState(0);
   const [feedbackState, setFeedbackState] = useState<{
     result: AnswerResult;
     feedback: string;
@@ -80,13 +88,14 @@ function SessionContent() {
   const [aiError, setAiError] = useState<string | null>(null);
 
   const persist = useCallback(
-    (q: Question[], pi: number, s: Score, da?: string[], fu?: string[]) => {
+    (q: Question[], pi: number, s: Score, da?: string[], fu?: string[], st?: number) => {
       saveSession(difficulty, {
         questions: q,
         progressIndex: pi,
         score: s,
         deepAnalyzeUsed: da ?? [],
         followUpUsed: fu ?? [],
+        streak: st ?? 0,
       });
     },
     [difficulty],
@@ -99,6 +108,7 @@ function SessionContent() {
       setProgressIndex(saved.progressIndex);
       setViewIndex(saved.progressIndex);
       setScore(saved.score);
+      setStreak(saved.streak ?? 0);
       setDeepAnalyzeUsed(new Set(saved.deepAnalyzeUsed ?? []));
       setFollowUpUsed(new Set(saved.followUpUsed ?? []));
       setPhase("reading");
@@ -154,6 +164,10 @@ function SessionContent() {
   );
   const previousChunks = chunks.slice(0, viewIndex);
   const isLastChunk = progressIndex === chunks.length - 1;
+  const isDragDrop = currentQuestion?.type === "drag-drop" && currentQuestion.dragDrop;
+  const isHighlight = currentQuestion?.type === "highlight" && currentQuestion.highlight;
+  const isReorder = currentQuestion?.type === "reorder" && currentQuestion.reorder;
+  const isInteractive = isDragDrop || isHighlight || isReorder;
 
   function handleBack() {
     if (viewIndex <= 0) return;
@@ -169,18 +183,15 @@ function SessionContent() {
     setViewIndex(progressIndex);
   }
 
-  function handleAnswerSubmit(studentAnswer: string) {
-    if (!currentQuestion) return;
-
-    setLastAnswer(studentAnswer);
-    const evaluation = evaluateAnswer(
-      studentAnswer,
-      currentQuestion.keyConcepts,
-      currentQuestion.expectedAnswer,
-      currentChunk?.text ?? "",
-    );
-
+  function applyEvaluation(evaluation: EvaluationResult) {
     setLastEvaluation(evaluation);
+
+    const newStreak = evaluation.result === "correct" ? streak + 1 : 0;
+    setStreak(newStreak);
+
+    if (evaluation.result === "correct") {
+      fireCorrectConfetti();
+    }
 
     const newScore: Score = {
       earned: score.earned + evaluation.pointsEarned,
@@ -189,7 +200,45 @@ function SessionContent() {
     setScore(newScore);
     setFeedbackState({ result: evaluation.result, feedback: evaluation.feedback });
     setPhase("feedback");
-    persist(questions, progressIndex, newScore, [...deepAnalyzeUsed], [...followUpUsed]);
+    persist(questions, progressIndex, newScore, [...deepAnalyzeUsed], [...followUpUsed], newStreak);
+  }
+
+  function handleAnswerSubmit(studentAnswer: string) {
+    if (!currentQuestion) return;
+    setLastAnswer(studentAnswer);
+
+    const evaluation = evaluateAnswer(
+      studentAnswer,
+      currentQuestion.keyConcepts,
+      currentQuestion.expectedAnswer,
+      currentChunk?.text ?? "",
+    );
+
+    applyEvaluation(evaluation);
+  }
+
+  function handleDragDropSubmit(placements: string[]) {
+    if (!currentQuestion?.dragDrop) return;
+    setLastAnswer(placements.join(", "));
+
+    const evaluation = evaluateDragDrop(placements, currentQuestion.dragDrop);
+    applyEvaluation(evaluation);
+  }
+
+  function handleHighlightSubmit(selectedIndex: number) {
+    if (!currentQuestion?.highlight) return;
+    setLastAnswer(currentQuestion.highlight.sentences[selectedIndex] ?? "");
+
+    const evaluation = evaluateHighlight(selectedIndex, currentQuestion.highlight);
+    applyEvaluation(evaluation);
+  }
+
+  function handleReorderSubmit(order: string[]) {
+    if (!currentQuestion?.reorder) return;
+    setLastAnswer(order.join(" → "));
+
+    const evaluation = evaluateReorder(order, currentQuestion.reorder);
+    applyEvaluation(evaluation);
   }
 
   async function handleDeepAnalyze() {
@@ -228,14 +277,18 @@ function SessionContent() {
       }
 
       if (bonusPoints > 0) {
+        const newStreak = aiResult.result === "correct" ? streak + 1 : streak;
+        if (aiResult.result === "correct") fireCorrectConfetti();
+        setStreak(newStreak);
+
         const updatedScore: Score = {
           earned: score.earned + bonusPoints,
           available: score.available,
         };
         setScore(updatedScore);
-        persist(questions, progressIndex, updatedScore, [...newUsed], [...followUpUsed]);
+        persist(questions, progressIndex, updatedScore, [...newUsed], [...followUpUsed], newStreak);
       } else {
-        persist(questions, progressIndex, score, [...newUsed], [...followUpUsed]);
+        persist(questions, progressIndex, score, [...newUsed], [...followUpUsed], streak);
       }
 
       setFeedbackState(aiResult);
@@ -265,7 +318,7 @@ function SessionContent() {
     setProgressIndex(next);
     setViewIndex(next);
     setPhase("reading");
-    persist(questions, next, score, [...deepAnalyzeUsed], [...followUpUsed]);
+    persist(questions, next, score, [...deepAnalyzeUsed], [...followUpUsed], streak);
   }
 
   function handleContinue() {
@@ -337,7 +390,7 @@ function SessionContent() {
       const newUsed = new Set(followUpUsed);
       newUsed.add(currentQuestion.id);
       setFollowUpUsed(newUsed);
-      persist(questions, progressIndex, score, [...deepAnalyzeUsed], [...newUsed]);
+      persist(questions, progressIndex, score, [...deepAnalyzeUsed], [...newUsed], streak);
     } catch (err) {
       console.error("Follow-up evaluation failed:", err);
       setAiError("Couldn\u2019t evaluate your follow-up — you can still move on.");
@@ -359,11 +412,12 @@ function SessionContent() {
     return (
       <main className="flex min-h-screen flex-col items-center justify-center px-6 py-12">
         <div className="w-full max-w-2xl text-center space-y-4">
+          <span className="text-4xl font-bold text-red-300">!</span>
           <p className="text-lg font-semibold text-gray-800">Something went wrong</p>
           <p className="text-sm text-red-600">{error}</p>
           <button
             onClick={() => router.push("/")}
-            className="inline-block rounded-lg border border-gray-200 px-5 py-2.5 text-sm font-medium text-gray-600 hover:border-blue-300 hover:text-blue-600 transition-colors cursor-pointer"
+            className="inline-block rounded-full border-2 border-gray-200 px-5 py-2.5 text-sm font-medium text-gray-600 hover:border-sky-300 hover:text-sky-600 transition-colors cursor-pointer"
           >
             ← Back to start
           </button>
@@ -376,8 +430,8 @@ function SessionContent() {
     return (
       <main className="flex min-h-screen flex-col items-center justify-center px-6 py-12">
         <div className="w-full max-w-2xl text-center space-y-4">
-          <div className="inline-block h-6 w-6 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
-          <p className="text-sm text-gray-500">
+          <div className="text-4xl animate-bounce font-bold text-amber-400">~</div>
+          <p className="text-sm font-medium text-gray-600">
             Getting your reading session ready&hellip;
           </p>
           <p className="text-xs text-gray-400">This usually takes a few seconds</p>
@@ -387,12 +441,12 @@ function SessionContent() {
   }
 
   return (
-    <main className="flex min-h-screen flex-col items-center px-6 py-8 sm:py-12">
+    <main className="flex min-h-screen flex-col items-center px-4 sm:px-6 py-6 sm:py-12">
       <div className="w-full max-w-2xl space-y-5">
-        <div className="flex items-center justify-between">
-          <h1 className="text-lg font-bold text-gray-800">{passage.title}</h1>
-          <div className="flex items-center gap-3">
-            <ScoreBar earned={score.earned} available={score.available} />
+        {/* Header */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h1 className="text-lg font-bold text-gray-800">{passage.title}</h1>
             <button
               onClick={handleRestart}
               className="text-xs text-gray-400 hover:text-red-500 transition-colors cursor-pointer px-2 py-1.5 -mr-2 min-h-[36px] flex items-center"
@@ -400,16 +454,29 @@ function SessionContent() {
               Restart
             </button>
           </div>
+          <div className="flex items-center justify-between gap-3">
+            <ProgressStepper
+              total={chunks.length}
+              current={progressIndex}
+              completed={progressIndex}
+            />
+            <div className="flex items-center gap-2">
+              <StreakCounter streak={streak} />
+              <ScoreBar earned={score.earned} available={score.available} />
+            </div>
+          </div>
         </div>
 
         <PreviousChunks chunks={previousChunks} />
 
         {currentChunk && (
-          <PassageChunk
-            index={currentChunk.index}
-            text={currentChunk.text}
-            total={chunks.length}
-          />
+          <div key={`chunk-${currentChunk.index}`} className="animate-fade-in-up">
+            <PassageChunk
+              index={currentChunk.index}
+              text={currentChunk.text}
+              total={chunks.length}
+            />
+          </div>
         )}
 
         {/* Navigation for viewing previous chunks */}
@@ -440,8 +507,8 @@ function SessionContent() {
         {!isViewingPrevious && (
           <>
             {aiError && (
-              <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 flex items-start gap-2">
-                <span className="text-amber-500 text-sm mt-0.5">⚠</span>
+              <div className="rounded-2xl border-2 border-amber-200/80 bg-gradient-to-r from-amber-50 to-orange-50/60 px-4 py-3 flex items-start gap-2 card-shadow">
+                <span className="text-amber-500 text-sm mt-0.5 font-bold">!</span>
                 <div className="flex-1">
                   <p className="text-sm text-amber-800">{aiError}</p>
                 </div>
@@ -465,31 +532,60 @@ function SessionContent() {
             )}
 
             {phase === "reading" && (
-              <button
-                onClick={() => setPhase("answering")}
-                className="w-full rounded-lg bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-700 transition-colors cursor-pointer min-h-[48px]"
-              >
-                I&apos;ve read this — show me the question
-              </button>
+              <div className="animate-fade-in-up">
+                <button
+                  onClick={() => setPhase("answering")}
+                  className="w-full rounded-2xl bg-sky-500 px-4 py-3 text-sm font-semibold text-white hover:bg-sky-600 transition-colors cursor-pointer min-h-[48px] active:scale-[0.98] shadow-md shadow-sky-200"
+                >
+                  I&apos;ve read this — show me the question
+                </button>
+              </div>
             )}
 
             {phase === "answering" && currentQuestion && (
-              <QuestionCard
-                questionText={currentQuestion.questionText}
-                onSubmit={handleAnswerSubmit}
-                disabled={false}
-                marks={currentQuestion.keyConcepts.length}
-              />
+              <div className="animate-fade-in-up">
+                {isDragDrop ? (
+                  <DragDropCard
+                    questionText={currentQuestion.questionText}
+                    dragDrop={currentQuestion.dragDrop!}
+                    onSubmit={handleDragDropSubmit}
+                    disabled={false}
+                  />
+                ) : isHighlight ? (
+                  <HighlightCard
+                    questionText={currentQuestion.questionText}
+                    data={currentQuestion.highlight!}
+                    onSubmit={handleHighlightSubmit}
+                    disabled={false}
+                  />
+                ) : isReorder ? (
+                  <ReorderCard
+                    questionText={currentQuestion.questionText}
+                    data={currentQuestion.reorder!}
+                    onSubmit={handleReorderSubmit}
+                    disabled={false}
+                  />
+                ) : (
+                  <QuestionCard
+                    questionText={currentQuestion.questionText}
+                    onSubmit={handleAnswerSubmit}
+                    disabled={false}
+                    marks={currentQuestion.keyConcepts.length}
+                  />
+                )}
+              </div>
             )}
 
             {phase === "feedback" && feedbackState && (
-              <>
-                <QuestionCard
-                  questionText={currentQuestion?.questionText ?? ""}
-                  onSubmit={() => {}}
-                  disabled={true}
-                  marks={currentQuestion?.keyConcepts.length}
-                />
+              <div className="animate-fade-in-up space-y-5">
+                {!isInteractive && (
+                  <QuestionCard
+                    questionText={currentQuestion?.questionText ?? ""}
+                    onSubmit={() => {}}
+                    disabled={true}
+                    marks={currentQuestion?.keyConcepts.length}
+                  />
+                )}
                 <FeedbackCard
                   result={feedbackState.result}
                   feedback={feedbackState.feedback}
@@ -498,6 +594,7 @@ function SessionContent() {
                   onContinue={handleContinue}
                   onRequestAIReview={
                     currentQuestion &&
+                    !isInteractive &&
                     feedbackState.result !== "correct" &&
                     !deepAnalyzeUsed.has(currentQuestion.id) &&
                     !lastEvaluation?.isChunkDump
@@ -507,13 +604,14 @@ function SessionContent() {
                   aiReviewLoading={aiReviewLoading}
                   onFollowUp={
                     currentQuestion &&
+                    !isInteractive &&
                     feedbackState.result !== "correct" &&
                     !followUpUsed.has(currentQuestion.id)
                       ? handleStartFollowUp
                       : undefined
                   }
                 />
-              </>
+              </div>
             )}
 
             {(phase === "followup" || phase === "followup-result") && (
@@ -540,7 +638,7 @@ export default function SessionPage() {
     <Suspense
       fallback={
         <div className="flex min-h-screen items-center justify-center text-gray-400">
-          Loading...
+          <span className="text-2xl animate-bounce font-bold text-amber-400">~</span>
         </div>
       }
     >

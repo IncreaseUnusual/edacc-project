@@ -1,4 +1,4 @@
-import { AnswerResult, KeyConcept } from "./types";
+import { AnswerResult, DragDropData, HighlightData, KeyConcept, ReorderData } from "./types";
 
 function levenshtein(a: string, b: string): number {
   const m = a.length;
@@ -192,6 +192,113 @@ export function evaluateAnswer(
     missedConcepts: missed,
     pointsEarned,
     pointsAvailable: totalConcepts,
+    isChunkDump: false,
+  };
+}
+
+export function evaluateDragDrop(
+  placements: string[],
+  dragDrop: DragDropData,
+): EvaluationResult {
+  const total = dragDrop.answers.length;
+  let correct = 0;
+  const matched: string[] = [];
+  const missed: string[] = [];
+
+  for (let i = 0; i < total; i++) {
+    const expected = dragDrop.answers[i]?.toLowerCase().trim();
+    const placed = placements[i]?.toLowerCase().trim();
+    if (placed === expected) {
+      correct++;
+      matched.push(expected);
+    } else {
+      missed.push(expected);
+    }
+  }
+
+  let result: AnswerResult;
+  let feedback: string;
+
+  if (correct === total) {
+    result = "correct";
+    feedback = "You got every blank right!";
+  } else if (correct > 0) {
+    result = "partial";
+    feedback = `You got ${correct} out of ${total} blanks. The ones you missed: ${missed.join(", ")}.`;
+  } else {
+    result = "incorrect";
+    feedback = `None of the blanks matched. The correct words were: ${dragDrop.answers.join(", ")}.`;
+  }
+
+  return {
+    result,
+    feedback,
+    matchedConcepts: matched,
+    missedConcepts: missed,
+    pointsEarned: correct,
+    pointsAvailable: total,
+    isChunkDump: false,
+  };
+}
+
+export function evaluateHighlight(
+  selectedIndex: number,
+  data: HighlightData,
+): EvaluationResult {
+  const isCorrect = selectedIndex === data.correctIndex;
+
+  return {
+    result: isCorrect ? "correct" : "incorrect",
+    feedback: isCorrect
+      ? "Spot on! You found the right sentence."
+      : `Not quite — the proving sentence was: "${data.sentences[data.correctIndex]}"`,
+    matchedConcepts: isCorrect ? ["proof"] : [],
+    missedConcepts: isCorrect ? [] : ["proof"],
+    pointsEarned: isCorrect ? 1 : 0,
+    pointsAvailable: 1,
+    isChunkDump: false,
+  };
+}
+
+export function evaluateReorder(
+  submittedOrder: string[],
+  data: ReorderData,
+): EvaluationResult {
+  const total = data.events.length;
+  let correct = 0;
+  const matched: string[] = [];
+  const missed: string[] = [];
+
+  for (let i = 0; i < total; i++) {
+    if (submittedOrder[i] === data.events[i]) {
+      correct++;
+      matched.push(`#${i + 1}`);
+    } else {
+      missed.push(`#${i + 1}`);
+    }
+  }
+
+  let result: AnswerResult;
+  let feedback: string;
+
+  if (correct === total) {
+    result = "correct";
+    feedback = "Perfect order! You nailed the sequence.";
+  } else if (correct >= Math.ceil(total / 2)) {
+    result = "partial";
+    feedback = `${correct} out of ${total} in the right spot. Close!`;
+  } else {
+    result = "incorrect";
+    feedback = `Only ${correct} out of ${total} matched. The correct order was:\n${data.events.map((e, i) => `${i + 1}. ${e}`).join("\n")}`;
+  }
+
+  return {
+    result,
+    feedback,
+    matchedConcepts: matched,
+    missedConcepts: missed,
+    pointsEarned: correct,
+    pointsAvailable: total,
     isChunkDump: false,
   };
 }

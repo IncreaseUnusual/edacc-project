@@ -31,9 +31,11 @@ export function QuestionCard({
   }
 
   return (
-    <div className="rounded-xl border border-blue-100 bg-blue-50/40 p-5 sm:p-6">
+    <div className="rounded-3xl border-2 border-sky-200/80 bg-gradient-to-br from-sky-50/80 to-white p-5 sm:p-6 card-shadow">
       <div className="flex items-center justify-between mb-2">
-        <p className="text-sm font-medium text-gray-500">Question</p>
+        <p className="text-sm font-medium text-sky-600 flex items-center gap-1.5">
+          Question
+        </p>
         {marks !== undefined && marks > 0 && (
           <span className="text-xs font-medium text-gray-400">
             {marks} {marks === 1 ? "mark" : "marks"}
@@ -55,10 +57,10 @@ export function QuestionCard({
             }
             disabled={disabled}
             rows={3}
-            className={`w-full rounded-lg border bg-white px-4 py-3 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-1 disabled:opacity-50 resize-none ${
+            className={`w-full rounded-2xl border-2 bg-white px-4 py-3 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-1 disabled:opacity-50 resize-none ${
               stt.listening
                 ? "border-red-300 focus:border-red-400 focus:ring-red-400"
-                : "border-gray-200 focus:border-blue-400 focus:ring-blue-400"
+                : "border-gray-200 focus:border-sky-400 focus:ring-sky-400"
             }`}
           />
           {stt.supported && !disabled && (
@@ -73,17 +75,17 @@ export function QuestionCard({
               aria-label={stt.listening ? "Stop listening" : "Voice input"}
               title={stt.listening ? "Stop listening" : "Voice input"}
             >
-              {stt.listening ? "MIC ON" : "MIC"}
+              {stt.listening ? "Stop" : "Mic"}
             </button>
           )}
         </div>
         <button
           type="submit"
           disabled={disabled || !answer.trim()}
-          className={`w-full rounded-lg px-4 py-3 text-sm font-semibold transition-all min-h-[48px] ${
+          className={`w-full rounded-2xl px-4 py-3 text-sm font-semibold transition-all min-h-[48px] ${
             disabled || !answer.trim()
               ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-              : "bg-blue-600 text-white hover:bg-blue-700 cursor-pointer"
+              : "bg-sky-500 text-white hover:bg-sky-600 cursor-pointer active:scale-[0.98] shadow-md shadow-sky-200"
           }`}
         >
           Submit answer

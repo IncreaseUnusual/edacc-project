@@ -35,7 +35,7 @@ export function FollowUpCard({
 
   if (loading) {
     return (
-      <div className="rounded-xl border border-purple-100 bg-purple-50/40 p-5 sm:p-6">
+      <div className="rounded-3xl border-2 border-purple-200/80 bg-gradient-to-br from-purple-50/70 to-white p-5 sm:p-6 card-shadow">
         <div className="flex items-center gap-2">
           <div className="h-4 w-4 animate-spin rounded-full border-2 border-purple-600 border-t-transparent" />
           <p className="text-sm text-gray-500">
@@ -59,13 +59,13 @@ export function FollowUpCard({
   }
 
   return (
-    <div className="rounded-xl border border-purple-100 bg-purple-50/40 p-5 sm:p-6 space-y-4">
-      <p className="text-sm font-semibold text-purple-700">
+    <div className="rounded-3xl border-2 border-purple-200/80 bg-gradient-to-br from-purple-50/70 to-white p-5 sm:p-6 space-y-4 card-shadow">
+      <p className="text-sm font-semibold text-purple-700 flex items-center gap-1.5">
         Follow-up Question
       </p>
 
       {chunkText && (
-        <div className="rounded-lg bg-white/60 border border-purple-100 p-3">
+        <div className="rounded-2xl bg-white/60 border border-purple-100 p-3">
           <p className="text-xs text-gray-400 mb-1">Re-read this section:</p>
           <p className="text-sm text-gray-600 leading-relaxed">{chunkText}</p>
         </div>
@@ -90,7 +90,7 @@ export function FollowUpCard({
               }
               disabled={submitting}
               rows={3}
-              className={`w-full rounded-lg border bg-white px-4 py-3 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-1 disabled:opacity-50 resize-none ${
+              className={`w-full rounded-2xl border-2 bg-white px-4 py-3 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-1 disabled:opacity-50 resize-none ${
                 stt.listening
                   ? "border-red-300 focus:border-red-400 focus:ring-red-400"
                   : "border-gray-200 focus:border-purple-400 focus:ring-purple-400"
@@ -108,17 +108,17 @@ export function FollowUpCard({
                 aria-label={stt.listening ? "Stop listening" : "Voice input"}
                 title={stt.listening ? "Stop listening" : "Voice input"}
               >
-                {stt.listening ? "MIC ON" : "MIC"}
+                {stt.listening ? "Stop" : "Mic"}
               </button>
             )}
           </div>
           <button
             type="submit"
             disabled={submitting || !answer.trim()}
-            className={`w-full rounded-lg px-4 py-3 text-sm font-semibold transition-all min-h-[48px] ${
+            className={`w-full rounded-2xl px-4 py-3 text-sm font-semibold transition-all min-h-[48px] ${
               submitting || !answer.trim()
                 ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                : "bg-purple-600 text-white hover:bg-purple-700 cursor-pointer"
+                : "bg-purple-500 text-white hover:bg-purple-600 cursor-pointer active:scale-[0.98] shadow-md shadow-purple-200"
             }`}
           >
             {submitting ? (
@@ -135,17 +135,17 @@ export function FollowUpCard({
 
       {hasResult && (
         <div
-          className={`rounded-lg p-4 ${
+          className={`rounded-2xl p-4 ${
             result.result === "correct"
-              ? "bg-green-50 border border-green-200"
-              : "bg-red-50 border border-red-200"
+              ? "bg-gradient-to-br from-green-50 to-emerald-50/60 border-2 border-green-200"
+              : "bg-gradient-to-br from-red-50 to-rose-50/60 border-2 border-red-200"
           }`}
         >
           <div className="flex items-center gap-2 mb-2">
-            <span className="text-lg font-bold">
+            <span className="text-2xl">
               {result.result === "correct" ? "✓" : "✗"}
             </span>
-            <span className="text-sm font-semibold text-gray-800">
+            <span className="text-sm font-bold text-gray-800">
               {result.result === "correct" ? "Well done!" : "Not quite — here\u2019s the answer"}
             </span>
           </div>
@@ -153,7 +153,7 @@ export function FollowUpCard({
           <p className="text-sm text-gray-600 mb-2">{result.feedback}</p>
 
           {result.result === "incorrect" && result.correctAnswer && (
-            <div className="rounded-lg bg-white/80 p-3 mt-2">
+            <div className="rounded-2xl bg-white/80 p-3 mt-2">
               <p className="text-xs text-gray-400 mb-1">The answer:</p>
               <p className="text-sm text-gray-700 font-medium">
                 {result.correctAnswer}
@@ -164,7 +164,7 @@ export function FollowUpCard({
           {onContinue && (
             <button
               onClick={onContinue}
-              className="mt-3 w-full rounded-lg bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-700 transition-colors cursor-pointer min-h-[48px]"
+              className="mt-3 w-full rounded-2xl bg-sky-500 px-4 py-3 text-sm font-semibold text-white hover:bg-sky-600 transition-colors cursor-pointer min-h-[48px] active:scale-[0.98] shadow-md shadow-sky-200"
             >
               Next section →
             </button>

@@ -4,6 +4,7 @@ import { Suspense, useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Difficulty } from "@/lib/types";
 import { passage } from "@/lib/passage";
+import { fireCompletionConfetti } from "@/lib/confetti";
 
 type Summary = {
   headline: string;
@@ -12,9 +13,9 @@ type Summary = {
 };
 
 function scoreLabel(pct: number): { text: string; color: string } {
-  if (pct >= 80) return { text: "Excellent — you really know your stuff!", color: "text-green-600" };
+  if (pct >= 80) return { text: "You really know your stuff!", color: "text-emerald-600" };
   if (pct >= 50) return { text: "Solid effort — you're getting there!", color: "text-amber-600" };
-  return { text: "Good start — keep at it!", color: "text-blue-600" };
+  return { text: "Good start — keep at it!", color: "text-sky-600" };
 }
 
 function CompletionContent() {
@@ -30,6 +31,10 @@ function CompletionContent() {
   const [summary, setSummary] = useState<Summary | null>(null);
   const [summaryError, setSummaryError] = useState(false);
   const [passageOpen, setPassageOpen] = useState(false);
+
+  useEffect(() => {
+    fireCompletionConfetti();
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -60,9 +65,10 @@ function CompletionContent() {
 
   return (
     <main className="flex min-h-screen flex-col items-center px-6 py-10 sm:py-16">
-      <div className="w-full max-w-2xl space-y-8">
+      <div className="w-full max-w-2xl space-y-8 animate-fade-in-up">
         {/* Score */}
         <div className="text-center space-y-3">
+          <div className="text-5xl mb-2 font-bold text-amber-400">*</div>
           <h1 className="text-2xl font-bold text-gray-800">
             {summary?.headline ?? "Session Complete!"}
           </h1>
@@ -84,10 +90,10 @@ function CompletionContent() {
         </div>
 
         {/* AI Summary */}
-        <div className="rounded-xl border border-gray-100 bg-gray-50 p-5 sm:p-6 space-y-3">
+        <div className="rounded-3xl border-2 border-gray-100/80 bg-white/70 backdrop-blur-sm p-5 sm:p-6 space-y-3 card-shadow">
           {!summary && !summaryError && (
             <div className="flex items-center gap-2">
-              <div className="h-4 w-4 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
+              <div className="h-4 w-4 animate-spin rounded-full border-2 border-sky-600 border-t-transparent" />
               <p className="text-sm text-gray-500">
                 Putting together your learning summary&hellip;
               </p>
@@ -106,7 +112,7 @@ function CompletionContent() {
               <p className="text-sm text-gray-700 leading-relaxed">
                 {summary.summary}
               </p>
-              <p className="text-sm text-blue-600 font-medium">
+              <p className="text-sm text-sky-600 font-medium">
                 {summary.encouragement}
               </p>
             </>
@@ -114,12 +120,12 @@ function CompletionContent() {
         </div>
 
         {/* Full Passage Reveal */}
-        <div className="rounded-xl border border-gray-100 bg-white">
+        <div className="rounded-3xl border-2 border-gray-100/80 bg-white/70 backdrop-blur-sm card-shadow">
           <button
             onClick={() => setPassageOpen((o) => !o)}
-            className="w-full flex items-center justify-between p-4 text-left cursor-pointer"
+            className="w-full flex items-center justify-between p-4 text-left cursor-pointer min-h-[48px]"
           >
-            <span className="text-sm font-semibold text-gray-700">
+            <span className="text-sm font-semibold text-gray-700 flex items-center gap-1.5">
               Read the full passage
             </span>
             <span className="text-gray-400 text-xs">
@@ -143,13 +149,13 @@ function CompletionContent() {
         <div className="flex flex-col gap-3">
           <button
             onClick={() => router.push(`/session?difficulty=${difficulty}`)}
-            className="w-full rounded-lg bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-700 transition-colors cursor-pointer min-h-[48px]"
+            className="w-full rounded-full bg-sky-500 px-4 py-3 text-sm font-semibold text-white hover:bg-sky-600 transition-colors cursor-pointer min-h-[48px] active:scale-[0.98] shadow-lg shadow-sky-200"
           >
-            Give it another go ({difficulty})
+            Give it another go
           </button>
           <button
             onClick={() => router.push("/")}
-            className="w-full rounded-lg border border-gray-200 px-4 py-3 text-sm font-medium text-gray-600 hover:border-blue-300 hover:text-blue-600 transition-colors cursor-pointer min-h-[48px]"
+            className="w-full rounded-full border-2 border-gray-200 px-4 py-3 text-sm font-medium text-gray-600 hover:border-sky-300 hover:text-sky-600 transition-colors cursor-pointer min-h-[48px]"
           >
             Try a different level
           </button>
@@ -164,7 +170,7 @@ export default function CompletePage() {
     <Suspense
       fallback={
         <div className="flex min-h-screen items-center justify-center text-gray-400">
-          Loading…
+          <span className="text-2xl animate-bounce font-bold text-amber-400">*</span>
         </div>
       }
     >

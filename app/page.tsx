@@ -17,8 +17,9 @@ export default function WelcomePage() {
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center px-6 py-12">
-      <div className="w-full max-w-md text-center">
-        <h1 className="text-3xl sm:text-4xl font-bold tracking-tight">
+      <div className="w-full max-w-md text-center animate-fade-in-up">
+        <div className="text-5xl mb-4 font-bold text-amber-400">B</div>
+        <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-gray-800">
           {passage.title}
         </h1>
 
@@ -36,13 +37,13 @@ export default function WelcomePage() {
         <button
           onClick={handleStart}
           disabled={!selected}
-          className={`mt-8 w-full max-w-sm rounded-xl px-6 py-3.5 text-base font-semibold transition-all min-h-[52px] ${
+          className={`mt-8 w-full max-w-sm rounded-full px-6 py-3.5 text-base font-semibold transition-all min-h-[52px] ${
             selected
-              ? "bg-blue-600 text-white hover:bg-blue-700 cursor-pointer"
+              ? "bg-sky-500 text-white hover:bg-sky-600 cursor-pointer active:scale-[0.98] shadow-lg shadow-sky-200"
               : "bg-gray-100 text-gray-400 cursor-not-allowed"
           }`}
         >
-          Let&apos;s begin
+          Let&apos;s go!
         </button>
       </div>
     </main>

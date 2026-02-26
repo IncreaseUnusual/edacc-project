@@ -16,12 +16,34 @@ export type KeyConcept = {
   keywords: string[];
 };
 
+export type QuestionType = "short-answer" | "drag-drop" | "highlight" | "reorder";
+
+export type DragDropData = {
+  sentenceWithBlanks: string;
+  answers: string[];
+  distractors: string[];
+};
+
+export type HighlightData = {
+  claim: string;
+  sentences: string[];
+  correctIndex: number;
+};
+
+export type ReorderData = {
+  events: string[];
+};
+
 export type Question = {
   id: string;
   chunkIndex: number;
   questionText: string;
   expectedAnswer: string;
   keyConcepts: KeyConcept[];
+  type: QuestionType;
+  dragDrop?: DragDropData;
+  highlight?: HighlightData;
+  reorder?: ReorderData;
 };
 
 export type AnswerResult = "correct" | "partial" | "incorrect";
