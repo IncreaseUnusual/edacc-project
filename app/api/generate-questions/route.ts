@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
         : (() => { throw new Error("Unexpected AI response shape"); })();
 
     const questions: Question[] = arr.map((q) => {
-      let type: QuestionType = VALID_TYPES.has(q.type) ? q.type : "short-answer";
+      const originalType: QuestionType = VALID_TYPES.has(q.type) ? q.type : "short-answer";
 
       const base = {
         id: randomUUID(),
@@ -42,26 +42,34 @@ export async function POST(req: NextRequest) {
         questionText: q.questionText,
         expectedAnswer: q.expectedAnswer,
         keyConcepts: q.keyConcepts ?? [],
-        type,
       };
 
-      if (type === "drag-drop" && q.dragDrop) {
+      // --- drag-drop ---
+      if (originalType === "drag-drop") {
         const dd = q.dragDrop;
         if (
+          dd &&
           typeof dd.sentenceWithBlanks === "string" &&
           Array.isArray(dd.answers) &&
           dd.answers.length > 0 &&
           Array.isArray(dd.distractors)
         ) {
-          return { ...base, dragDrop: dd };
+          return { ...base, type: "drag-drop" as const, dragDrop: dd };
         }
-        type = "short-answer";
-        return { ...base, type };
+        return {
+          ...base,
+          type: "short-answer" as const,
+          questionText: q.expectedAnswer
+            ? `In your own words, explain: ${q.expectedAnswer}`
+            : q.questionText,
+        };
       }
 
-      if (type === "highlight" && q.highlight) {
+      // --- highlight ---
+      if (originalType === "highlight") {
         const hl = q.highlight;
         if (
+          hl &&
           typeof hl.claim === "string" &&
           Array.isArray(hl.sentences) &&
           hl.sentences.length >= 2 &&
@@ -69,25 +77,35 @@ export async function POST(req: NextRequest) {
           hl.correctIndex >= 0 &&
           hl.correctIndex < hl.sentences.length
         ) {
-          return { ...base, highlight: hl };
+          return { ...base, type: "highlight" as const, highlight: hl };
         }
-        type = "short-answer";
-        return { ...base, type };
+        const claim = hl?.claim ?? q.questionText;
+        return {
+          ...base,
+          type: "short-answer" as const,
+          questionText: `What evidence in the text supports this: "${claim}"?`,
+        };
       }
 
-      if (type === "reorder" && q.reorder) {
+      // --- reorder ---
+      if (originalType === "reorder") {
         const ro = q.reorder;
         if (
+          ro &&
           Array.isArray(ro.events) &&
           ro.events.length >= 3
         ) {
-          return { ...base, reorder: ro };
+          return { ...base, type: "reorder" as const, reorder: ro };
         }
-        type = "short-answer";
-        return { ...base, type };
+        return {
+          ...base,
+          type: "short-answer" as const,
+          questionText: "Describe the sequence of main events in this section.",
+        };
       }
 
-      return base;
+      // --- short-answer (default) ---
+      return { ...base, type: "short-answer" as const };
     });
 
     return NextResponse.json({ questions });
