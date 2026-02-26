@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
+import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 
 export function QuestionCard({
   questionText,
@@ -15,10 +16,17 @@ export function QuestionCard({
 }) {
   const [answer, setAnswer] = useState("");
 
+  const handleSpeechResult = useCallback((text: string) => {
+    setAnswer((prev) => (prev ? prev + " " + text : text));
+  }, []);
+
+  const stt = useSpeechRecognition(handleSpeechResult);
+
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const trimmed = answer.trim();
     if (!trimmed || disabled) return;
+    if (stt.listening) stt.stop();
     onSubmit(trimmed);
   }
 
@@ -36,14 +44,39 @@ export function QuestionCard({
         {questionText}
       </p>
       <form onSubmit={handleSubmit} className="space-y-3">
-        <textarea
-          value={answer}
-          onChange={(e) => setAnswer(e.target.value)}
-          placeholder="Type your answer here…"
-          disabled={disabled}
-          rows={3}
-          className="w-full rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm text-gray-800 placeholder-gray-400 focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400 disabled:opacity-50 resize-none"
-        />
+        <div className="relative">
+          <textarea
+            value={answer}
+            onChange={(e) => setAnswer(e.target.value)}
+            placeholder={
+              stt.listening
+                ? "Listening… speak now"
+                : "Type your answer here…"
+            }
+            disabled={disabled}
+            rows={3}
+            className={`w-full rounded-lg border bg-white px-4 py-3 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-1 disabled:opacity-50 resize-none ${
+              stt.listening
+                ? "border-red-300 focus:border-red-400 focus:ring-red-400"
+                : "border-gray-200 focus:border-blue-400 focus:ring-blue-400"
+            }`}
+          />
+          {stt.supported && !disabled && (
+            <button
+              type="button"
+              onClick={stt.toggle}
+              className={`absolute right-2 bottom-2 rounded-full p-1.5 text-xs font-medium transition-colors cursor-pointer ${
+                stt.listening
+                  ? "bg-red-100 text-red-600 hover:bg-red-200"
+                  : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+              }`}
+              aria-label={stt.listening ? "Stop listening" : "Voice input"}
+              title={stt.listening ? "Stop listening" : "Voice input"}
+            >
+              {stt.listening ? "MIC ON" : "MIC"}
+            </button>
+          )}
+        </div>
         <button
           type="submit"
           disabled={disabled || !answer.trim()}
